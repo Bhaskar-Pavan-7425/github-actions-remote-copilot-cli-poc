@@ -22,75 +22,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python - <<'PY'
-          import json
-          import os
-
-          token = os.environ["GITHUB_TOKEN"]
-
-          command = f'''sudo -u ubuntu env \
-          HOME=/home/ubuntu \
-          PATH=/home/ubuntu/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-          GITHUB_TOKEN="{token}" \
-          bash -lc 'set -e
-
-          REPO_DIR=/home/ubuntu/github-actions-remote-copilot-cli-poc
-
-          rm -rf "$REPO_DIR"
-
-          git clone --branch dev https://github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git "$REPO_DIR"
-
-          cd "$REPO_DIR"
-
-          git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git"
-
-          echo "===== Repository ====="
-          pwd
-
-          echo "===== Git branch ====="
-          git branch --show-current
-
-          echo "===== Files ====="
-          ls -la
-
-          echo "===== Running Copilot ====="
-
-          copilot -p "Analyze calculator.py and test_calculator.py. Identify the actual coding issue. Fix the root cause in calculator.py. Do not modify the test unless the test itself is incorrect. After making the fix, run the relevant Python test. Verify that the test passes. Make only the necessary code changes." \
-            --allow-tool=write \
-            --allow-tool="shell(python:*)" \
-            --no-ask-user
-
-          echo "===== Copilot finished ====="
-
-          echo "===== Test result ====="
-          python -m unittest test_calculator.py
-
-          echo "===== Git diff ====="
-          git diff
-
-          echo "===== Git status ====="
-          git status
-
-          if git diff --quiet; then
-            echo "ERROR: Copilot did not modify the code."
-            exit 1
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add calculator.py
-
-          git commit -m "fix: resolve calculator issue"
-
-          git push origin dev
-
-          echo "===== FIX PUSHED SUCCESSFULLY ====="
-          '
-          '''
-
-          with open("/tmp/ssm-parameters.json", "w") as f:
-              json.dump({"commands": [command]}, f)
+          python -c 'import json, os, shlex; token=shlex.quote(os.environ["GITHUB_TOKEN"]); command="""sudo -u ubuntu env HOME=/home/ubuntu PATH=/home/ubuntu/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin GITHUB_TOKEN=%s bash -lc '\''set -e; REPO_DIR=/home/ubuntu/github-actions-remote-copilot-cli-poc; rm -rf "$REPO_DIR"; git clone --branch dev https://github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git "$REPO_DIR"; cd "$REPO_DIR"; git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git"; echo "===== Repository ====="; pwd; echo "===== Branch ====="; git branch --show-current; echo "===== Files ====="; ls -la; echo "===== Running Copilot ====="; copilot -p "Analyze calculator.py and test_calculator.py. Identify the actual coding issue. Fix the root cause in calculator.py. Do not modify the test unless the test itself is incorrect. After making the fix, run the relevant Python test. Verify that the test passes. Make only the necessary code changes." --allow-tool=write --allow-tool="shell(python:*)" --no-ask-user; echo "===== Copilot finished ====="; echo "===== Running test ====="; python -m unittest test_calculator.py; echo "===== Git diff ====="; git diff; echo "===== Git status ====="; git status; if git diff --quiet; then echo "ERROR: Copilot did not modify the code."; exit 1; fi; git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"; git add calculator.py; git commit -m "fix: resolve calculator issue"; git push origin dev; echo "===== FIX PUSHED SUCCESSFULLY ====="'\''""" % token; json.dump({"commands":[command]},open("/tmp/ssm-parameters.json","w"))'
 
           echo "SSM parameters prepared."
 
