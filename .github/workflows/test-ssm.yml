@@ -23,7 +23,7 @@ jobs:
           cat > /tmp/ssm-parameters.json <<'EOF'
           {
             "commands": [
-              "sudo -iu ubuntu bash -lc 'NPM_PREFIX=$(sed -n \"s/^prefix=//p\" ~/.npmrc); export PATH=\"$NPM_PREFIX/bin:$PATH\"; echo USER=$(whoami); echo NPM_PREFIX=$NPM_PREFIX; echo COPILOT_PATH=$(command -v copilot); copilot --version'"
+              "sudo -u ubuntu env HOME=/home/ubuntu PATH=/home/ubuntu/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin bash -lc 'echo USER=$(whoami); echo HOME=$HOME; echo PATH=$PATH; echo COPILOT_PATH=$(command -v copilot); copilot --version'"
             ]
           }
           EOF
