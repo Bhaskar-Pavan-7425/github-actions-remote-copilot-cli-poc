@@ -18,12 +18,12 @@ jobs:
           role-to-assume: arn:aws:iam::660430196073:role/GitHubActions-RemoteCopilot-SSM
           aws-region: us-east-1
 
-      - name: Send command to EC2
+      - name: Test existing Copilot CLI
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids i-07e0d7af398cb121d \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["whoami","hostname","echo SSM_CONNECTION_SUCCESS"]' \
+            --parameters 'commands=["sudo -u ubuntu -H bash -lc '\''whoami; which copilot; copilot --version'\''"]' \
             --query "Command.CommandId" \
             --output text)
 
