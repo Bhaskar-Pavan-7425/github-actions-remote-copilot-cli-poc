@@ -23,7 +23,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids i-07e0d7af398cb121d \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["sudo -u ubuntu -H bash -lc '\''echo USER=$(whoami); echo COPILOT_PATH=$(which copilot); copilot --version'\''"]' \
+            --parameters 'commands=["sudo -iu ubuntu bash -lc '\''echo USER=$(whoami); echo COPILOT_PATH=$(command -v copilot); copilot --version'\''"]' \
             --query "Command.CommandId" \
             --output text)
 
