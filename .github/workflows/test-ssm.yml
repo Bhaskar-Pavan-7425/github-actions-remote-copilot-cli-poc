@@ -23,7 +23,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids i-07e0d7af398cb121d \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["sudo -iu ubuntu bash -lc '\''source ~/.bashrc 2>/dev/null || true; echo USER=$(whoami); echo PATH=$PATH; echo NODE=$(command -v node || true); echo NPM=$(command -v npm || true); echo COPILOT_PATH=$(command -v copilot || true); if command -v copilot >/dev/null 2>&1; then copilot --version; else echo COPILOT_NOT_FOUND; fi'\''"]' \
+            --parameters 'commands=["sudo -iu ubuntu bash -lc '\''PREFIX=$(npm prefix -g); export PATH=\"$PREFIX/bin:$PATH\"; echo USER=$(whoami); echo NPM_PREFIX=$PREFIX; echo COPILOT_PATH=$(command -v copilot); copilot --version'\''"]' \
             --query "Command.CommandId" \
             --output text)
 
