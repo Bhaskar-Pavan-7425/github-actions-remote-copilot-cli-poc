@@ -12,24 +12,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ---------------------------------------------------------
+      # 1. Configure AWS credentials using GitHub OIDC
+      # ---------------------------------------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::660430196073:role/GitHubActions-RemoteCopilot-SSM
           aws-region: us-east-1
 
+      # ---------------------------------------------------------
+      # 2. Prepare the SSM command
+      # ---------------------------------------------------------
       - name: Prepare SSM command
         run: |
           cat > /tmp/ssm-parameters.json <<'EOF'
           {
             "commands": [
-              "sudo -u ubuntu env HOME=/home/ubuntu PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/bin bash -lc 'set -e; REPO_DIR=/home/ubuntu/github-actions-remote-copilot-cli-poc; rm -rf \"$REPO_DIR\"; git clone --branch dev https://github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git \"$REPO_DIR\"; cd \"$REPO_DIR\"; echo \"===== REPOSITORY =====\"; pwd; echo \"===== BRANCH =====\"; git branch --show-current; echo \"===== FILES =====\"; ls -la; echo \"===== RUNNING COPILOT =====\"; copilot -p \"Analyze calculator.py and test_calculator.py. Identify the actual coding issue. Fix the root cause in calculator.py. Do not modify the test unless the test itself is incorrect. After making the fix, run the relevant Python test and verify that it passes. Make only the necessary code changes.\" --allow-tool=write --allow-tool=\"shell(python:*)\" --no-ask-user; echo \"===== COPILOT FINISHED =====\"; echo \"===== RUNNING TEST =====\"; python -m unittest test_calculator.py; echo \"===== GIT DIFF =====\"; git diff; echo \"===== GIT STATUS =====\"; git status; if git diff --quiet; then echo \"ERROR: Copilot did not modify the code.\"; exit 1; fi; git config user.name \"github-actions[bot]\"; git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"; git add calculator.py; git commit -m \"fix: resolve calculator issue\"; git push origin dev; echo \"===== FIX PUSHED SUCCESSFULLY =====\"'"
+              "sudo -u ubuntu env HOME=/home/ubuntu PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/bin bash -lc 'set -e; REPO_DIR=/home/ubuntu/github-actions-remote-copilot-cli-poc; rm -rf \"$REPO_DIR\"; git clone --branch dev https://github.com/Bhaskar-Pavan-7425/github-actions-remote-copilot-cli-poc.git \"$REPO_DIR\"; cd \"$REPO_DIR\"; echo \"===== REPOSITORY =====\"; pwd; echo \"===== BRANCH =====\"; git branch --show-current; echo \"===== FILES =====\"; ls -la; echo \"===== RUNNING COPILOT =====\"; copilot -p \"Analyze calculator.py and test_calculator.py. Identify the actual coding issue. Fix the root cause in calculator.py. Do not modify the test unless the test itself is incorrect. After making the fix, run the relevant Python test and verify that it passes. Make only the necessary code changes.\" --allow-tool=write --allow-tool=\"shell(python3:*)\" --no-ask-user; echo \"===== COPILOT FINISHED =====\"; echo \"===== RUNNING TEST =====\"; python3 -m unittest test_calculator.py; echo \"===== GIT DIFF =====\"; git diff; echo \"===== GIT STATUS =====\"; git status; if git diff --quiet; then echo \"ERROR: Copilot did not modify the code.\"; exit 1; fi; git config user.name \"github-actions[bot]\"; git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"; git add calculator.py; git commit -m \"fix: resolve calculator issue\"; git push origin dev; echo \"===== FIX PUSHED SUCCESSFULLY =====\"'"
             ]
           }
           EOF
 
           echo "SSM command prepared."
 
+      # ---------------------------------------------------------
+      # 3. Send command to the new EC2 instance
+      # ---------------------------------------------------------
       - name: Send command to EC2
         run: |
           COMMAND_ID=$(aws ssm send-command \
@@ -40,9 +49,11 @@ jobs:
             --output text)
 
           echo "Command ID: $COMMAND_ID"
-
           echo "Waiting for remote Copilot..."
 
+          # -----------------------------------------------------
+          # 4. Wait for SSM command to complete
+          # -----------------------------------------------------
           for i in {1..180}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
@@ -52,13 +63,19 @@ jobs:
 
             echo "Status: $STATUS"
 
-            if [[ "$STATUS" == "Success" || "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+            if [[ "$STATUS" == "Success" || \
+                  "$STATUS" == "Failed" || \
+                  "$STATUS" == "Cancelled" || \
+                  "$STATUS" == "TimedOut" ]]; then
               break
             fi
 
             sleep 2
           done
 
+          # -----------------------------------------------------
+          # 5. Display remote command output
+          # -----------------------------------------------------
           echo ""
           echo "================ STDOUT ================"
 
@@ -77,6 +94,9 @@ jobs:
             --query "StandardErrorContent" \
             --output text
 
+          # -----------------------------------------------------
+          # 6. Check final status
+          # -----------------------------------------------------
           echo ""
           echo "================ FINAL STATUS ================"
 
