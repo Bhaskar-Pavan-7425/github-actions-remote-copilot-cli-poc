@@ -18,12 +18,12 @@ jobs:
           role-to-assume: arn:aws:iam::660430196073:role/GitHubActions-RemoteCopilot-SSM
           aws-region: us-east-1
 
-      - name: Test existing Copilot CLI
+      - name: Find and test existing Copilot CLI
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids i-07e0d7af398cb121d \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["sudo -iu ubuntu bash -lc '\''PREFIX=$(npm prefix -g); export PATH=\"$PREFIX/bin:$PATH\"; echo USER=$(whoami); echo NPM_PREFIX=$PREFIX; echo COPILOT_PATH=$(command -v copilot); copilot --version'\''"]' \
+            --parameters 'commands=["sudo -iu ubuntu bash -lc '\''echo USER=$(whoami); echo HOME=$HOME; echo PATH=$PATH; echo Searching for Copilot...; COPILOT=$(find /home/ubuntu -type f -name copilot -perm -111 -print -quit 2>/dev/null); echo COPILOT_PATH=$COPILOT; if [ -n \"$COPILOT\" ]; then echo Running Copilot...; \"$COPILOT\" --version; else echo COPILOT_NOT_FOUND; exit 1; fi'\''"]' \
             --query "Command.CommandId" \
             --output text)
 
